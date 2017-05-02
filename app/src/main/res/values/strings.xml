@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Locatr</string>
+
+    <string name="search">Find an image near you</string>
+
+    <!-- Location Rationale Dialog -->
+    <string name="permission_rationale">Locatr uses location
+data to find images near you on Flickr.</string>
+    <string name="ok_button">Ok</string>
+    <string name="cancel_button">cancel</string>
+
+</resources>
