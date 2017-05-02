@@ -1,8 +1,7 @@
 package com.bignerdranch.android.locatr;
 
-import android.*;
 import android.Manifest;
-import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -11,9 +10,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.RequiresPermission;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
@@ -33,8 +30,6 @@ import com.google.android.gms.location.LocationServices;
 
 import java.io.IOException;
 import java.util.List;
-
-import static android.R.attr.handle;
 
 /**
  * Created by Chris on 5/1/2017.
@@ -58,6 +53,7 @@ public class LocatrFragment extends Fragment {
     private static final int REQUEST_LOCATION_PERMISSIONS = 0;
 
     private ImageView mImageView;
+    private ProgressDialog mProgressDialog;
     private GoogleApiClient mClient;
 
     public static LocatrFragment newInstance() {
@@ -108,11 +104,7 @@ public class LocatrFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_locate:
-                if (hasLocationPermission()) {
-                    findImage();
-                } else {
-                    handlePermissionRequest();
-                }
+                findImage();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -149,22 +141,37 @@ public class LocatrFragment extends Fragment {
         mClient.disconnect();
     }
 
+    // Finds an image if permissions are authorized, otherwise requests the correct permissions
     private void findImage() {
-        LocationRequest request = LocationRequest.create();
+        if (hasLocationPermission()) {
+            if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                    ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
 
-        request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        request.setNumUpdates(1);
-        request.setInterval(0);
+            mProgressDialog = new ProgressDialog(getActivity());
+            mProgressDialog.setMessage("Loading image near you..");
+            mProgressDialog.show();
 
-        LocationServices.FusedLocationApi
-                .requestLocationUpdates(mClient, request, new LocationListener() {
-                    @Override
-                    public void onLocationChanged(Location location) {
-                        Log.i(TAG, "Got a fix: " + location);
+            LocationRequest request = LocationRequest.create();
 
-                        new SearchTask().execute(location);
-                    }
-                });
+            request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            request.setNumUpdates(1);
+            request.setInterval(0);
+
+            LocationServices.FusedLocationApi
+                    .requestLocationUpdates(mClient, request, new LocationListener() {
+                        @Override
+                        public void onLocationChanged(Location location) {
+                            Log.i(TAG, "Got a fix: " + location);
+
+                            new SearchTask().execute(location);
+                        }
+                    });
+        } else {
+            // Do the permission request instead
+            handlePermissionRequest();
+        }
     }
 
     private boolean hasLocationPermission() {
@@ -210,6 +217,7 @@ public class LocatrFragment extends Fragment {
 
         @Override
         protected void onPostExecute(Void aVoid) {
+            mProgressDialog.dismiss();
             mImageView.setImageBitmap(mBitmap);
         }
     }
